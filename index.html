@@ -67,6 +67,28 @@ events(id, user_id, event_name, event_time, session_id)
         </pre>
       </section>
 
+
+      <section class="card ide-card">
+        <div class="challenge-head">
+          <h2>Built-in SQL IDE</h2>
+          <span class="pill">Practice Workspace</span>
+        </div>
+        <p class="label">Write, format, inspect, and save SQL while you work through lessons.</p>
+        <div class="ide-actions">
+          <button id="ide-load-lesson" class="secondary">Load Lesson SQL</button>
+          <button id="ide-format" class="secondary">Format SQL</button>
+          <button id="ide-run" class="primary">Run Analysis</button>
+          <button id="ide-copy" class="secondary">Copy</button>
+          <button id="ide-reset" class="ghost">Clear</button>
+        </div>
+        <textarea id="ide-editor" class="ide-editor" placeholder="SELECT u.country, SUM(o.total) AS revenue
+FROM users u
+JOIN orders o ON u.id = o.user_id
+WHERE o.status = 'paid'
+GROUP BY u.country;" spellcheck="false"></textarea>
+        <pre id="ide-output" class="ide-output">IDE ready. Write a query and click “Run Analysis”.</pre>
+      </section>
+
       <section class="card challenge-card">
         <div class="challenge-head">
           <h2 id="challenge-title">Challenge</h2>
@@ -390,6 +412,13 @@ events(id, user_id, event_name, event_time, session_id)
       const nextBtn = document.getElementById("next-challenge");
       const submitBtn = document.getElementById("submit-answer");
       const resetBtn = document.getElementById("reset-progress");
+      const ideEditorEl = document.getElementById("ide-editor");
+      const ideOutputEl = document.getElementById("ide-output");
+      const ideRunBtn = document.getElementById("ide-run");
+      const ideFormatBtn = document.getElementById("ide-format");
+      const ideCopyBtn = document.getElementById("ide-copy");
+      const ideResetBtn = document.getElementById("ide-reset");
+      const ideLoadLessonBtn = document.getElementById("ide-load-lesson");
 
       const saved = JSON.parse(localStorage.getItem("sqlCrackedState") || "{}");
       const state = {
@@ -521,6 +550,113 @@ events(id, user_id, event_name, event_time, session_id)
         renderRoadmap();
         saveState();
       }
+
+
+      function formatSql(sql) {
+        const keywords = [
+          "select", "from", "where", "join", "left join", "right join", "inner join", "group by",
+          "order by", "having", "limit", "on", "as", "and", "or", "with", "partition by", "over",
+        ];
+
+        let formatted = sql.trim().replace(/\s+/g, " ");
+        keywords.forEach((kw) => {
+          const pattern = new RegExp(`\\b${kw.replace(" ", "\\\\s+")}\\b`, "gi");
+          formatted = formatted.replace(pattern, kw.toUpperCase());
+        });
+
+        ["FROM", "WHERE", "GROUP BY", "ORDER BY", "HAVING", "LIMIT"].forEach((breakKw) => {
+          const reg = new RegExp(`\\s+${breakKw}\\b`, "g");
+          formatted = formatted.replace(reg, `\n${breakKw}`);
+        });
+
+        return formatted;
+      }
+
+      function analyzeSql(sql) {
+        const text = normalizeText(sql);
+        if (!text) return "⚠️ Add a query first.";
+        if (!text.startsWith("select") && !text.startsWith("with")) {
+          return "⚠️ This IDE currently analyzes SELECT/CTE-style queries.";
+        }
+
+        const checks = [
+          ["SELECT", /\bselect\b/i],
+          ["FROM", /\bfrom\b/i],
+          ["WHERE", /\bwhere\b/i],
+          ["JOIN", /\bjoin\b/i],
+          ["GROUP BY", /\bgroup\s+by\b/i],
+          ["WINDOW", /\bover\s*\(/i],
+          ["ORDER BY", /\border\s+by\b/i],
+          ["LIMIT", /\blimit\b/i],
+        ];
+
+        const lines = ["✅ Query parsed."];
+        checks.forEach(([name, regex]) => {
+          lines.push(`${regex.test(text) ? "•" : "◦"} ${name} ${regex.test(text) ? "detected" : "not detected"}`);
+        });
+
+        const tables = [...text.matchAll(/\bfrom\s+([a-zA-Z_][\w.]*)|\bjoin\s+([a-zA-Z_][\w.]*)/g)]
+          .map((m) => m[1] || m[2]);
+        if (tables.length) lines.push(`• Tables referenced: ${[...new Set(tables)].join(", ")}`);
+
+        lines.push("\nTip: this is a local analyzer, not a real database execution engine.");
+        return lines.join("\n");
+      }
+
+      function saveIdeDraft() {
+        localStorage.setItem("sqlIdeDraft", ideEditorEl.value);
+      }
+
+      ideEditorEl.value = localStorage.getItem("sqlIdeDraft") || "";
+      ideEditorEl.addEventListener("input", saveIdeDraft);
+
+      ideFormatBtn.addEventListener("click", () => {
+        ideEditorEl.value = formatSql(ideEditorEl.value);
+        saveIdeDraft();
+        ideOutputEl.textContent = "Formatted SQL in editor.";
+      });
+
+      ideRunBtn.addEventListener("click", () => {
+        ideOutputEl.textContent = analyzeSql(ideEditorEl.value);
+      });
+
+      ideCopyBtn.addEventListener("click", async () => {
+        const text = ideEditorEl.value;
+        if (!text.trim()) {
+          ideOutputEl.textContent = "Nothing to copy yet.";
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(text);
+          ideOutputEl.textContent = "Copied SQL to clipboard.";
+        } catch {
+          ideOutputEl.textContent = "Clipboard unavailable in this environment.";
+        }
+      });
+
+      ideResetBtn.addEventListener("click", () => {
+        ideEditorEl.value = "";
+        saveIdeDraft();
+        ideOutputEl.textContent = "Editor cleared.";
+      });
+
+      ideLoadLessonBtn.addEventListener("click", () => {
+        const challenge = challenges[state.current];
+        ideEditorEl.value = challenge.mode === "sql"
+          ? challenge.expected[0]
+          : `-- ${challenge.title}
+-- ${challenge.prompt}`;
+        saveIdeDraft();
+        ideOutputEl.textContent = "Loaded current lesson into IDE.";
+      });
+
+      ideEditorEl.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+          event.preventDefault();
+          ideOutputEl.textContent = analyzeSql(ideEditorEl.value);
+        }
+      });
 
       submitBtn.addEventListener("click", () => {
         const challenge = challenges[state.current];

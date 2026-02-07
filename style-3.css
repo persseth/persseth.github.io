@@ -178,6 +178,28 @@ button {
   flex-wrap: wrap;
 }
 
+.ide-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.6rem 0 0.8rem;
+}
+
+.ide-editor {
+  min-height: 220px;
+}
+
+.ide-output {
+  margin-top: 0.8rem;
+  background: #0b1028;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.8rem;
+  color: #d8e2ff;
+  white-space: pre-wrap;
+  min-height: 120px;
+}
+
 .challenge-head {
   display: flex;
   align-items: center;

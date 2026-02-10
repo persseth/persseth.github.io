@@ -1,33 +1,706 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Startup</title>
-     <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet">
-
-    <!-- Bootstrap CSS from a CDN. This way you don't have to include the bootstrap file yourself -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    
-    <!-- Your own stylesheet -->
-    <link rel="stylesheet" type="text/css" href="style-3.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SQL Analysis Mastery Trainer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style-3.css" />
   </head>
   <body>
-    <div class="container d-flex align-items-center h-100"> 
-      <div class ="row">
-        <header class="text-center col-12">
-          <h1 class="text-uppercase"><strong>The Biggest Startup Event Of The yEAR</strong> 
-          </header>  
-        </h1>
-      <div class="buffer col-12"></div>
-      <section class="text-center col-12">
-        <hr>
-        <button class="btn btn-primary btn-xl">Learn More!</button>
+    <main class="app">
+      <header class="hero card">
+        <p class="eyebrow">Mission: become elite at SQL analysis</p>
+        <h1>SQL Analysis Mastery Trainer</h1>
+        <p>
+          A typed-answer SQL course covering SQL fundamentals first, then advanced analytics,
+          performance tuning, and production-ready query thinking.
+        </p>
+      </header>
+
+      <section class="grid">
+        <article class="card stats-card">
+          <h2>Your Progress</h2>
+          <div class="stats">
+            <div>
+              <p class="label">Score</p>
+              <p id="score" class="value">0</p>
+            </div>
+            <div>
+              <p class="label">Streak</p>
+              <p id="streak" class="value">0 🔥</p>
+            </div>
+            <div>
+              <p class="label">Level</p>
+              <p id="level" class="value">Rookie</p>
+            </div>
+          </div>
+          <button id="reset-progress" class="ghost">Reset Progress</button>
+        </article>
+
+        <article class="card course-card">
+          <div class="course-head">
+            <h2>Course Roadmap</h2>
+            <p id="course-summary" class="label">0 / 0 lessons complete</p>
+          </div>
+          <div class="meter-wrap" aria-label="Course completion progress">
+            <div id="course-meter" class="meter-bar"></div>
+          </div>
+          <div id="roadmap" class="roadmap"></div>
+        </article>
       </section>
-      </div>
-  </div>
+
+      <section class="card schema-card">
+        <h2>Practice Schema</h2>
+        <p>Use these tables for query-writing lessons:</p>
+        <pre>
+users(id, name, country, signup_date, plan)
+orders(id, user_id, total, status, created_at)
+products(id, name, category, price)
+order_items(order_id, product_id, quantity)
+events(id, user_id, event_name, event_time, session_id)
+        </pre>
+      </section>
+
+
+      <section class="card ide-card">
+        <div class="challenge-head">
+          <h2>Built-in SQL IDE</h2>
+          <span class="pill">Practice Workspace</span>
+        </div>
+        <p class="label">Write, format, inspect, and save SQL while you work through lessons.</p>
+        <div class="ide-actions">
+          <button id="ide-load-lesson" class="secondary">Load Lesson SQL</button>
+          <button id="ide-format" class="secondary">Format SQL</button>
+          <button id="ide-run" class="primary">Run Analysis</button>
+          <button id="ide-copy" class="secondary">Copy</button>
+          <button id="ide-reset" class="ghost">Clear</button>
+        </div>
+        <textarea id="ide-editor" class="ide-editor" placeholder="SELECT u.country, SUM(o.total) AS revenue
+FROM users u
+JOIN orders o ON u.id = o.user_id
+WHERE o.status = 'paid'
+GROUP BY u.country;" spellcheck="false"></textarea>
+        <pre id="ide-output" class="ide-output">IDE ready. Write a query and click “Run Analysis”.</pre>
+      </section>
+
+      <section class="card challenge-card">
+        <div class="challenge-head">
+          <h2 id="challenge-title">Challenge</h2>
+          <span id="challenge-type" class="pill">Type Answer</span>
+        </div>
+
+        <p id="challenge-prompt" class="prompt"></p>
+
+        <div class="query-section">
+          <label for="answer-input">Type your answer:</label>
+          <textarea
+            id="answer-input"
+            placeholder="Type SQL or keyword answer..."
+            spellcheck="false"
+          ></textarea>
+        </div>
+
+        <div class="actions">
+          <button id="submit-answer" class="primary">Check Answer</button>
+          <button id="next-challenge" class="secondary">Next Lesson</button>
+        </div>
+
+        <div id="feedback" class="feedback" aria-live="polite"></div>
+        <details id="explanation-wrap" class="hidden">
+          <summary>Why?</summary>
+          <p id="explanation"></p>
+        </details>
+      </section>
+    </main>
+
+    <script>
+      const challenges = [
+        {
+          module: "0) SQL Fundamentals",
+          mode: "concept",
+          title: "What SQL stands for",
+          prompt: "Type what SQL stands for.",
+          expected: ["structured query language"],
+          explanation: "SQL stands for Structured Query Language.",
+        },
+        {
+          module: "0) SQL Fundamentals",
+          mode: "concept",
+          title: "Sorting results",
+          prompt: "Type the clause used to sort query results.",
+          expected: ["order by"],
+          explanation: "ORDER BY sorts result rows by one or more columns.",
+        },
+        {
+          module: "0) SQL Fundamentals",
+          mode: "concept",
+          title: "Missing values",
+          prompt: "Type the SQL marker representing missing/unknown values.",
+          expected: ["null"],
+          explanation: "NULL is used to represent missing or unknown values.",
+        },
+        {
+          module: "0) SQL Fundamentals",
+          mode: "concept",
+          title: "Pattern matching",
+          prompt: "Type the operator used for wildcard string matching (e.g., names starting with A%).",
+          expected: ["like"],
+          explanation: "LIKE supports wildcard filtering such as A% and %pro%.",
+        },
+        {
+          module: "1) Core Querying",
+          mode: "concept",
+          title: "SELECT keyword",
+          prompt: "Type the keyword that starts most SQL queries.",
+          expected: ["select"],
+          explanation: "SELECT is the entry point for reading data in SQL.",
+        },
+        {
+          module: "1) Core Querying",
+          mode: "concept",
+          title: "DISTINCT",
+          prompt: "Type the keyword that removes duplicate rows from SELECT output.",
+          expected: ["distinct"],
+          explanation: "DISTINCT deduplicates result rows based on selected columns.",
+        },
+        {
+          module: "1) Core Querying",
+          mode: "sql",
+          title: "Basic projection",
+          prompt: "Write a query that returns user name and country from users.",
+          expected: [
+            "SELECT name, country FROM users;",
+            "SELECT country, name FROM users;",
+          ],
+          explanation: "Project only required columns using SELECT column_list FROM table.",
+        },
+        {
+          module: "1) Core Querying",
+          mode: "concept",
+          title: "Aliasing",
+          prompt: "Type the keyword commonly used to create a column alias.",
+          expected: ["as"],
+          explanation: "AS makes result names clearer, especially in analytics queries.",
+        },
+        {
+          module: "2) Filtering & Aggregation",
+          mode: "concept",
+          title: "Row filtering",
+          prompt: "Type the clause used to filter rows before grouping.",
+          expected: ["where"],
+          explanation: "WHERE filters base rows. HAVING filters grouped output.",
+        },
+        {
+          module: "2) Filtering & Aggregation",
+          mode: "sql",
+          title: "Paid orders over 100",
+          prompt:
+            "Write a query returning id and total for paid orders with total > 100 sorted by total desc.",
+          expected: [
+            "SELECT id, total FROM orders WHERE status = 'paid' AND total > 100 ORDER BY total DESC;",
+            "SELECT id,total FROM orders WHERE total > 100 AND status='paid' ORDER BY total DESC;",
+          ],
+          explanation: "Combine filter predicates and sort descending for top values first.",
+        },
+        {
+          module: "2) Filtering & Aggregation",
+          mode: "concept",
+          title: "Group filtering",
+          prompt: "Type the clause used to filter after GROUP BY.",
+          expected: ["having"],
+          explanation: "HAVING applies conditions to aggregated groups.",
+        },
+        {
+          module: "2) Filtering & Aggregation",
+          mode: "sql",
+          title: "Revenue by country",
+          prompt:
+            "Write a query returning country and SUM(total) from paid orders using users joined to orders.",
+          expected: [
+            "SELECT u.country, SUM(o.total) AS revenue FROM users u JOIN orders o ON u.id = o.user_id WHERE o.status = 'paid' GROUP BY u.country;",
+            "SELECT u.country,SUM(o.total) revenue FROM users u JOIN orders o ON u.id=o.user_id WHERE o.status='paid' GROUP BY u.country;",
+          ],
+          explanation: "Join + filter + aggregate + group is a core analytics pattern.",
+        },
+        {
+          module: "3) Joins & Set Logic",
+          mode: "concept",
+          title: "LEFT JOIN",
+          prompt:
+            "Type the join that keeps all rows from the left table even without right-side matches.",
+          expected: ["left join", "left outer join"],
+          explanation: "LEFT JOIN preserves left rows and fills missing right values with NULL.",
+        },
+        {
+          module: "3) Joins & Set Logic",
+          mode: "sql",
+          title: "Order line detail",
+          prompt:
+            "Write a query returning order_id, product_id, quantity from order_items where quantity >= 2.",
+          expected: [
+            "SELECT order_id, product_id, quantity FROM order_items WHERE quantity >= 2;",
+            "SELECT order_id,product_id,quantity FROM order_items WHERE quantity >= 2;",
+          ],
+          explanation: "Use a focused filter to inspect high-quantity order lines.",
+        },
+        {
+          module: "3) Joins & Set Logic",
+          mode: "concept",
+          title: "Combining result sets",
+          prompt: "Type the operator that combines two result sets and removes duplicates.",
+          expected: ["union"],
+          explanation: "UNION deduplicates; UNION ALL keeps duplicates.",
+        },
+        {
+          module: "3) Joins & Set Logic",
+          mode: "concept",
+          title: "Anti join idea",
+          prompt:
+            "Type the keyword typically used with WHERE ... IS NULL to find unmatched rows from a LEFT JOIN.",
+          expected: ["null", "is null"],
+          explanation: "The anti-join pattern checks for NULL on the right-side key.",
+        },
+        {
+          module: "4) Window Functions",
+          mode: "concept",
+          title: "Window clause",
+          prompt: "Type the keyword used inside OVER(...) to split rows into partitions.",
+          expected: ["partition by"],
+          explanation: "PARTITION BY defines groups for window calculations.",
+        },
+        {
+          module: "4) Window Functions",
+          mode: "concept",
+          title: "Ranking",
+          prompt: "Type the window function that assigns row numbers in order.",
+          expected: ["row_number", "row_number()"],
+          explanation: "ROW_NUMBER() creates deterministic ranking per partition/order.",
+        },
+        {
+          module: "4) Window Functions",
+          mode: "sql",
+          title: "Rank orders per user",
+          prompt:
+            "Write a query returning user_id, id, total, and ROW_NUMBER ranked by total desc per user from orders.",
+          expected: [
+            "SELECT user_id, id, total, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY total DESC) AS rn FROM orders;",
+            "SELECT user_id,id,total,ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY total DESC) rn FROM orders;",
+          ],
+          explanation: "Window ranking helps find top-N entities inside each group.",
+        },
+        {
+          module: "4) Window Functions",
+          mode: "concept",
+          title: "Lag/lead",
+          prompt: "Type the function used to access a previous row's value in a window.",
+          expected: ["lag", "lag()"],
+          explanation: "LAG is essential for change analysis and period-over-period comparisons.",
+        },
+        {
+          module: "5) Time-Series & Product Analytics",
+          mode: "concept",
+          title: "Date truncation",
+          prompt: "Type the common function used to bucket timestamps to month/day (e.g., in Postgres).",
+          expected: ["date_trunc", "date_trunc()"],
+          explanation: "DATE_TRUNC helps build clean time buckets for trend analysis.",
+        },
+        {
+          module: "5) Time-Series & Product Analytics",
+          mode: "sql",
+          title: "Daily active users",
+          prompt:
+            "Write a query returning event day and distinct active users from events, grouped by day.",
+          expected: [
+            "SELECT DATE(event_time) AS day, COUNT(DISTINCT user_id) AS dau FROM events GROUP BY DATE(event_time);",
+            "SELECT DATE(event_time) day, COUNT(DISTINCT user_id) dau FROM events GROUP BY DATE(event_time);",
+          ],
+          explanation: "DAU is a foundational product metric based on distinct active users per day.",
+        },
+        {
+          module: "5) Time-Series & Product Analytics",
+          mode: "concept",
+          title: "Funnel math",
+          prompt: "Type the aggregate function often used to conditionally count event steps.",
+          expected: ["sum", "sum()"],
+          explanation: "Conditional SUM(CASE WHEN...) is a common funnel construction.",
+        },
+        {
+          module: "5) Time-Series & Product Analytics",
+          mode: "concept",
+          title: "Retention setup",
+          prompt: "Type the SQL construct often used to stage multi-step retention logic in readable blocks.",
+          expected: ["cte", "with", "with clause"],
+          explanation: "CTEs (WITH) keep complex analytics logic understandable and maintainable.",
+        },
+        {
+          module: "6) Data Modeling & Quality",
+          mode: "concept",
+          title: "Primary key",
+          prompt: "Type the constraint that uniquely identifies each row in a table.",
+          expected: ["primary key"],
+          explanation: "Primary keys enforce uniqueness and support reliable joins.",
+        },
+        {
+          module: "6) Data Modeling & Quality",
+          mode: "concept",
+          title: "Referential integrity",
+          prompt: "Type the constraint that enforces relationships between tables.",
+          expected: ["foreign key"],
+          explanation: "Foreign keys keep dimensional and fact relationships consistent.",
+        },
+        {
+          module: "6) Data Modeling & Quality",
+          mode: "concept",
+          title: "Missing-value handling",
+          prompt: "Type the function commonly used to replace NULL with a default value.",
+          expected: ["coalesce", "coalesce()"],
+          explanation: "COALESCE protects downstream metrics from NULL-related issues.",
+        },
+        {
+          module: "7) Performance & Optimization",
+          mode: "concept",
+          title: "Speeding filters",
+          prompt: "Type the database object used to speed up lookups and filtering.",
+          expected: ["index"],
+          explanation: "Indexes reduce scan work and can dramatically improve query latency.",
+        },
+        {
+          module: "7) Performance & Optimization",
+          mode: "concept",
+          title: "Execution plans",
+          prompt: "Type the command often used to inspect query plans in Postgres.",
+          expected: ["explain", "explain analyze", "explain analyze"],
+          explanation: "EXPLAIN (ANALYZE) reveals operator costs, joins, scans, and bottlenecks.",
+        },
+        {
+          module: "7) Performance & Optimization",
+          mode: "concept",
+          title: "Reducing transferred data",
+          prompt: "Type the clause used to cap the number of returned rows.",
+          expected: ["limit"],
+          explanation: "LIMIT can reduce I/O and speed previews during exploration.",
+        },
+        {
+          module: "7) Performance & Optimization",
+          mode: "concept",
+          title: "Transaction safety",
+          prompt: "Type the command that permanently saves a transaction.",
+          expected: ["commit"],
+          explanation: "COMMIT finalizes successful work; use with care in production workflows.",
+        },
+      ];
+
+      const scoreEl = document.getElementById("score");
+      const streakEl = document.getElementById("streak");
+      const levelEl = document.getElementById("level");
+      const courseSummaryEl = document.getElementById("course-summary");
+      const courseMeterEl = document.getElementById("course-meter");
+      const roadmapEl = document.getElementById("roadmap");
+      const titleEl = document.getElementById("challenge-title");
+      const typeEl = document.getElementById("challenge-type");
+      const promptEl = document.getElementById("challenge-prompt");
+      const answerInputEl = document.getElementById("answer-input");
+      const feedbackEl = document.getElementById("feedback");
+      const explanationWrapEl = document.getElementById("explanation-wrap");
+      const explanationEl = document.getElementById("explanation");
+      const nextBtn = document.getElementById("next-challenge");
+      const submitBtn = document.getElementById("submit-answer");
+      const resetBtn = document.getElementById("reset-progress");
+      const ideEditorEl = document.getElementById("ide-editor");
+      const ideOutputEl = document.getElementById("ide-output");
+      const ideRunBtn = document.getElementById("ide-run");
+      const ideFormatBtn = document.getElementById("ide-format");
+      const ideCopyBtn = document.getElementById("ide-copy");
+      const ideResetBtn = document.getElementById("ide-reset");
+      const ideLoadLessonBtn = document.getElementById("ide-load-lesson");
+
+      const saved = JSON.parse(localStorage.getItem("sqlCrackedState") || "{}");
+      const state = {
+        score: saved.score || 0,
+        streak: saved.streak || 0,
+        current: saved.current || 0,
+        completed: new Set(saved.completed || []),
+      };
+
+      function saveState() {
+        localStorage.setItem(
+          "sqlCrackedState",
+          JSON.stringify({
+            score: state.score,
+            streak: state.streak,
+            current: state.current,
+            completed: [...state.completed],
+          })
+        );
+      }
+
+      function normalizeText(text) {
+        return text
+          .trim()
+          .replace(/\s+/g, " ")
+          .replace(/;$/, "")
+          .toLowerCase();
+      }
+
+      function getLevel(score) {
+        if (score >= 28) return "Principal SQL Analyst";
+        if (score >= 21) return "Senior Analytics Engineer";
+        if (score >= 14) return "Window Function Grinder";
+        if (score >= 7) return "Join Assassin";
+        return "Rookie";
+      }
+
+      function updateStats() {
+        scoreEl.textContent = state.score;
+        streakEl.textContent = `${state.streak} 🔥`;
+        levelEl.textContent = getLevel(state.score);
+      }
+
+      function buildRoadmapData() {
+        const modules = {};
+        challenges.forEach((challenge, index) => {
+          if (!modules[challenge.module]) modules[challenge.module] = [];
+          modules[challenge.module].push({ ...challenge, index });
+        });
+        return modules;
+      }
+
+      function renderRoadmap() {
+        const modules = buildRoadmapData();
+        const completedCount = state.completed.size;
+        const percent = Math.round((completedCount / challenges.length) * 100);
+
+        courseSummaryEl.textContent = `${completedCount} / ${challenges.length} lessons complete`;
+        courseMeterEl.style.width = `${percent}%`;
+
+        roadmapEl.innerHTML = "";
+
+        Object.entries(modules).forEach(([module, lessons]) => {
+          const moduleBlock = document.createElement("div");
+          moduleBlock.className = "module";
+
+          const doneInModule = lessons.filter((lesson) => state.completed.has(lesson.index)).length;
+          moduleBlock.innerHTML = `<h3>${module} <span>${doneInModule}/${lessons.length}</span></h3>`;
+
+          lessons.forEach((lesson) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "lesson";
+
+            const isComplete = state.completed.has(lesson.index);
+            const isCurrent = state.current === lesson.index;
+            const isLocked = lesson.index > state.completed.size;
+
+            if (isComplete) button.classList.add("complete");
+            else if (isCurrent) button.classList.add("current");
+            else if (isLocked) button.classList.add("locked");
+
+            button.innerHTML = `<strong>${lesson.title}</strong><span>${isComplete ? "Complete" : isLocked ? "Locked" : "Open"}</span>`;
+
+            button.addEventListener("click", () => {
+              if (isLocked) return;
+              state.current = lesson.index;
+              renderChallenge();
+              renderRoadmap();
+              saveState();
+            });
+
+            moduleBlock.appendChild(button);
+          });
+
+          roadmapEl.appendChild(moduleBlock);
+        });
+      }
+
+      function renderChallenge() {
+        const challenge = challenges[state.current];
+
+        titleEl.textContent = `${challenge.module}: ${challenge.title}`;
+        typeEl.textContent = challenge.mode === "sql" ? "Write SQL" : "Type Concept";
+        promptEl.textContent = challenge.prompt;
+        feedbackEl.textContent = "";
+        feedbackEl.className = "feedback";
+        explanationWrapEl.classList.add("hidden");
+        answerInputEl.value = "";
+        answerInputEl.placeholder = challenge.mode === "sql" ? "SELECT ..." : "Type keyword / concept";
+      }
+
+      function markResult(isCorrect, explanation) {
+        if (isCorrect) {
+          state.score += 1;
+          state.streak += 1;
+          state.completed.add(state.current);
+          feedbackEl.textContent = "✅ Correct. Lesson completed.";
+          feedbackEl.classList.add("ok");
+        } else {
+          state.streak = 0;
+          feedbackEl.textContent = "❌ Not quite. Review the explanation and go again.";
+          feedbackEl.classList.add("bad");
+        }
+
+        explanationEl.textContent = explanation;
+        explanationWrapEl.classList.remove("hidden");
+        updateStats();
+        renderRoadmap();
+        saveState();
+      }
+
+
+      function formatSql(sql) {
+        const keywords = [
+          "select", "from", "where", "join", "left join", "right join", "inner join", "group by",
+          "order by", "having", "limit", "on", "as", "and", "or", "with", "partition by", "over",
+        ];
+
+        let formatted = sql.trim().replace(/\s+/g, " ");
+        keywords.forEach((kw) => {
+          const pattern = new RegExp(`\\b${kw.replace(" ", "\\\\s+")}\\b`, "gi");
+          formatted = formatted.replace(pattern, kw.toUpperCase());
+        });
+
+        ["FROM", "WHERE", "GROUP BY", "ORDER BY", "HAVING", "LIMIT"].forEach((breakKw) => {
+          const reg = new RegExp(`\\s+${breakKw}\\b`, "g");
+          formatted = formatted.replace(reg, `\n${breakKw}`);
+        });
+
+        return formatted;
+      }
+
+      function analyzeSql(sql) {
+        const text = normalizeText(sql);
+        if (!text) return "⚠️ Add a query first.";
+        if (!text.startsWith("select") && !text.startsWith("with")) {
+          return "⚠️ This IDE currently analyzes SELECT/CTE-style queries.";
+        }
+
+        const checks = [
+          ["SELECT", /\bselect\b/i],
+          ["FROM", /\bfrom\b/i],
+          ["WHERE", /\bwhere\b/i],
+          ["JOIN", /\bjoin\b/i],
+          ["GROUP BY", /\bgroup\s+by\b/i],
+          ["WINDOW", /\bover\s*\(/i],
+          ["ORDER BY", /\border\s+by\b/i],
+          ["LIMIT", /\blimit\b/i],
+        ];
+
+        const lines = ["✅ Query parsed."];
+        checks.forEach(([name, regex]) => {
+          lines.push(`${regex.test(text) ? "•" : "◦"} ${name} ${regex.test(text) ? "detected" : "not detected"}`);
+        });
+
+        const tables = [...text.matchAll(/\bfrom\s+([a-zA-Z_][\w.]*)|\bjoin\s+([a-zA-Z_][\w.]*)/g)]
+          .map((m) => m[1] || m[2]);
+        if (tables.length) lines.push(`• Tables referenced: ${[...new Set(tables)].join(", ")}`);
+
+        lines.push("\nTip: this is a local analyzer, not a real database execution engine.");
+        return lines.join("\n");
+      }
+
+      function saveIdeDraft() {
+        localStorage.setItem("sqlIdeDraft", ideEditorEl.value);
+      }
+
+      ideEditorEl.value = localStorage.getItem("sqlIdeDraft") || "";
+      ideEditorEl.addEventListener("input", saveIdeDraft);
+
+      ideFormatBtn.addEventListener("click", () => {
+        ideEditorEl.value = formatSql(ideEditorEl.value);
+        saveIdeDraft();
+        ideOutputEl.textContent = "Formatted SQL in editor.";
+      });
+
+      ideRunBtn.addEventListener("click", () => {
+        ideOutputEl.textContent = analyzeSql(ideEditorEl.value);
+      });
+
+      ideCopyBtn.addEventListener("click", async () => {
+        const text = ideEditorEl.value;
+        if (!text.trim()) {
+          ideOutputEl.textContent = "Nothing to copy yet.";
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(text);
+          ideOutputEl.textContent = "Copied SQL to clipboard.";
+        } catch {
+          ideOutputEl.textContent = "Clipboard unavailable in this environment.";
+        }
+      });
+
+      ideResetBtn.addEventListener("click", () => {
+        ideEditorEl.value = "";
+        saveIdeDraft();
+        ideOutputEl.textContent = "Editor cleared.";
+      });
+
+      ideLoadLessonBtn.addEventListener("click", () => {
+        const challenge = challenges[state.current];
+        ideEditorEl.value = challenge.mode === "sql"
+          ? challenge.expected[0]
+          : `-- ${challenge.title}
+-- ${challenge.prompt}`;
+        saveIdeDraft();
+        ideOutputEl.textContent = "Loaded current lesson into IDE.";
+      });
+
+      ideEditorEl.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+          event.preventDefault();
+          ideOutputEl.textContent = analyzeSql(ideEditorEl.value);
+        }
+      });
+
+      submitBtn.addEventListener("click", () => {
+        const challenge = challenges[state.current];
+        const answer = normalizeText(answerInputEl.value);
+
+        if (!answer) {
+          feedbackEl.textContent = "Type an answer first.";
+          feedbackEl.className = "feedback bad";
+          return;
+        }
+
+        const correct = challenge.expected.some(
+          (candidate) => normalizeText(candidate) === answer
+        );
+
+        markResult(correct, challenge.explanation);
+      });
+
+      nextBtn.addEventListener("click", () => {
+        state.current = (state.current + 1) % challenges.length;
+        renderChallenge();
+        renderRoadmap();
+        saveState();
+      });
+
+      resetBtn.addEventListener("click", () => {
+        state.score = 0;
+        state.streak = 0;
+        state.current = 0;
+        state.completed = new Set();
+        renderChallenge();
+        renderRoadmap();
+        updateStats();
+        saveState();
+      });
+
+      if (state.current >= challenges.length) {
+        state.current = 0;
+      }
+
+      updateStats();
+      renderChallenge();
+      renderRoadmap();
+      saveState();
+    </script>
   </body>
 </html>
